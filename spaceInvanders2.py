@@ -34,6 +34,7 @@ BG  = pygame.transform.scale(pygame.image.load("assets/background-black.png"), (
 #define abstract sship class
 
 class Ship():
+    COOLDOWN = 30
     def __init__(self, x,y,health =100):
         self.x = x
         self.y = y
@@ -46,12 +47,35 @@ class Ship():
     def draw(self, window):
         #pygame.draw.rect(window, (255,0,0),(self.x, self.y, 50,50))
         window.blit(self.shipImg, (self.x, self.y))
+        for laser in self.lassers:
+            laser.draw(WIN)
+
+    def moveLassers(self, vel, obj):
+        self.cooldown()
+        for lasser in self.lassers:
+            lasser.move(vel)
+            if lasser.off_screen(HEIGHT):
+                self.lassers.remove(lasser)
+            elif lasser.collison(obj):
+                obj.health -=10
+                self.lassers.remove(lasser)
 
     def getWidth(self):
         return self.shipImg.get_width()
 
     def getHeight(self):
         return  self.shipImg.get_height()
+
+    def cooldown(self):
+        if(self.coolDownCounter >= self.COOLDOWN):
+            self.coolDownCounter =0
+        elif self.coolDownCounter>0:
+            self.coolDownCounter+=1
+
+    def shoot(self):
+        if self.coolDownCounter ==0:
+            laser = Laser(self.x, self.y, self.lasserImg)
+            self.lassers.append(laser)
 
 class Player(Ship):
     def __init__(self, x,y,health = 100):
@@ -60,6 +84,37 @@ class Player(Ship):
         self.lasserImg = YELLOW_LASER
         self.mask = pygame.mask.from_surface(self.shipImg)  #sprawdzanie czy mamy kolizje z statkiem - jego zdjeciem a nie prostokatem wokol niego
         self.maxHealth = health
+
+    def moveLassers(self, vel, objs):
+        self.cooldown()
+        for lasser in self.lassers:
+            lasser.move(vel)
+            if lasser.off_screen(HEIGHT):
+                self.lassers.remove(lasser)
+            else:
+                for obj in objs:
+                    if lasser.collison(obj):
+                        self.lassers.remove(lasser)
+                        objs.remove(obj)
+
+
+    def healthBar(self, window):
+        rectFull = pygame.Rect(self.x, self.y+self.shipImg.get_height()+10, self.shipImg.get_width(), 10)
+        pygame.draw.rect(window, (255,0,0), rectFull)
+
+        #pygame.draw.rect(window, (255,0,0),self.x, self.y+self.getHeight()+10, self.shipImg.get_width(),10)
+        rectAdjustabile = pygame.Rect(self.x, self.y+self.shipImg.get_height()+10, self.shipImg.get_width()*(self.health/self.maxHealth),10)
+        pygame.draw.rect(window, (0,255,0), rectAdjustabile)
+        #pygame.draw.rect(window, (0,255,0),self.x, self.y+self.shipImg.get_height()+10, self.shipImg.get_width(),10)
+
+
+    def draw(self, window):
+        #pygame.draw.rect(window, (255,0,0),(self.x, self.y, 50,50))
+        window.blit(self.shipImg, (self.x, self.y))
+        self.healthBar(WIN)
+        for laser in self.lassers:
+            laser.draw(WIN)
+
 
 class Enemy(Ship):
 
@@ -77,9 +132,36 @@ class Enemy(Ship):
 
         self.shipImg = self.COLOR_MAP[color][0]
         self.lasserImg = self.COLOR_MAP[color][1]
+        self.mask = pygame.mask.from_surface(self.shipImg)
 
     def move(self, vel):
         self.y +=vel
+
+
+class Laser:
+    def __init__(self, x,y,img):
+        self.x = x
+        self.y = y
+        self.img = img
+        self.mask = pygame.mask.from_surface(self.img)
+
+    def draw(self, window):
+        window.blit(self.img, (self.x, self.y))
+
+    def move(self, vel):
+        self.y += vel
+
+    def off_screen(self, height):
+        return not self.y <= height and self.y >=0
+
+    def collison(self, obj):
+        return  collide(obj, self)
+
+def collide(obj1, obj2):
+    offset_x = obj2.x - obj1.x
+    offset_y = obj2.y - obj1.y
+    return obj1.mask.overlap(obj2.mask, (offset_x, offset_y))
+
 
 
 
@@ -98,6 +180,7 @@ def main():
         enemyVel = 1
         lost = False
         lostCountdown = 0;
+        lesserVel =5
 
 
         def redraw_window():
@@ -164,11 +247,23 @@ def main():
             if keys[pygame.K_s] and player.y < HEIGHT - player.getHeight():   #ruch w dol
                 player.y += playerVelocity
 
+            if keys[pygame.K_SPACE]:
+                player.shoot()
+
             for enemy in enemies[:]:
                 enemy.move(enemyVel)
+                enemy.moveLassers(lesserVel, player)
+                if random.randrange(0,4*60)==1:
+                    enemy.shoot()
                 if(enemy.y + enemy.getHeight()>HEIGHT):
                     enemies.remove(enemy)
                     lives-=1
+                if collide(player, enemy):
+                    player.health-=10
+                    enemies.remove(enemy)
+
+            player.moveLassers(-lesserVel, enemies)
+
 
 
 
