@@ -97,6 +97,7 @@ def main():
         wavelength = 5
         enemyVel = 1
         lost = False
+        lostCountdown = 0;
 
 
         def redraw_window():
@@ -114,19 +115,31 @@ def main():
                 WIN.blit(lostLabel, (WIDTH/2- lostLabel.get_width()/2, HEIGHT/2 - lostLabel.get_height()))
 
 
+
             player.draw(WIN)
 
             for enemy in enemies:
                 enemy.draw(WIN)
+
             pygame.display.update()
 
         while run:
             clock.tick(FPS)  #checking how many times per second (int his case 60) we are checking events
 
+            redraw_window()
+
             if lives <=0 or player.health<=0:
                 lost = True
+                lostCountdown+=1
 
-            while len(enemies) ==0:
+            if lost:
+                if(lostCountdown >= FPS*3):
+                    run = False
+
+                else:
+                    continue
+
+            if len(enemies) ==0:
                 level+=1
                 wavelength +=5
                 for i in range(wavelength):
@@ -157,7 +170,7 @@ def main():
                     enemies.remove(enemy)
                     lives-=1
 
-            redraw_window()
+
 
 
 
