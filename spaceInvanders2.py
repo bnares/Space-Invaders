@@ -244,7 +244,7 @@ def main():
             if keys[pygame.K_w] and player.y >0 :   #ruch do gory
                 player.y -= playerVelocity
 
-            if keys[pygame.K_s] and player.y < HEIGHT - player.getHeight():   #ruch w dol
+            if keys[pygame.K_s] and player.y < HEIGHT - player.getHeight()-30:   #ruch w dol
                 player.y += playerVelocity
 
             if keys[pygame.K_SPACE]:
@@ -263,9 +263,6 @@ def main():
                     enemies.remove(enemy)
 
             player.moveLassers(-lesserVel, enemies)
-
-
-
 
 
 
